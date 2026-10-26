@@ -408,7 +408,7 @@ export function GameLoadingScreen({ onComplete }: GameLoadingScreenProps) {
 
       <style>{`
         .lw-scene { height: max(100vh, min(100vw * 2.1591, 118vh)); height: max(100dvh, min(100vw * 2.1591, 118dvh)); }
-        @keyframes lw-fade-in { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes lw-fade-in { from { filter: brightness(0) } to { filter: brightness(1) } }
         @keyframes lw-intro { from { transform: scale(1.16) } to { transform: scale(1) } }
         @keyframes lw-drift { from { transform: scale(1) translate3d(0,0,0) } to { transform: scale(1.04) translate3d(-0.6%,-0.7%,0) } }
         @keyframes lw-spin { to { transform: rotate(360deg) } }
