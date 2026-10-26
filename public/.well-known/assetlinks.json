@@ -1,0 +1,14 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.theumaircode.ludowar",
+      "sha256_cert_fingerprints": [
+        "55:EB:7B:F8:41:67:BC:F6:AC:21:14:C5:A6:C5:4E:78:E2:57:05:67:00:A8:09:77:57:9E:AA:06:82:4B:E3:56",
+        "9C:01:0D:99:C3:79:92:EF:EA:41:30:70:86:F4:15:6B:61:B1:66:A4:C0:87:8B:FE:98:C9:75:D9:8D:42:72:15",
+        "80:28:6B:5E:8C:6E:55:F9:C4:65:BB:74:D6:86:70:61:B1:28:11:39:F4:5A:C2:6D:9D:FE:3C:63:77:B2:7C:A3"
+      ]
+    }
+  }
+]

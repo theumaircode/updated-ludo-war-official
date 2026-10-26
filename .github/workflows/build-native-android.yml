@@ -1,0 +1,297 @@
+name: Build Native Android APK & AAB (Zero-Chrome Game Engine)
+
+on:
+  push:
+    branches: [main, 'v0/**']
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-native-android:
+    name: Compile True Native Fullscreen APK, AAB & Full Play Store Package
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout LUDO WAR Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22 & pnpm
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install pnpm
+        run: npm install -g pnpm@10
+
+      - name: Setup Java 21 (Required for Android Gradle & Capacitor)
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Accept All Android SDK Licenses (Direct Non-Interactive Pre-Authorization)
+        run: |
+          SDK_DIR="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK_DIR" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$SDK_DIR" >> $GITHUB_ENV
+          sudo mkdir -p "$SDK_DIR/licenses"
+          sudo chmod -R 777 "$SDK_DIR/licenses"
+          printf "\n8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n859f317696f67ef3d7f30a50a5560e7834b43903\n" > "$SDK_DIR/licenses/android-sdk-license"
+          printf "\n84831b9409646a918e30573bab4c9c91346d8abd\n" > "$SDK_DIR/licenses/android-sdk-preview-license"
+          printf "\n601085b94cd77f0b54ff86406957099ebe79c4d6\n" > "$SDK_DIR/licenses/android-googletv-license"
+          printf "\n33b6a2b64607f11b759f320ef9dff4ae5c47d97a\n" > "$SDK_DIR/licenses/google-gdk-license"
+          printf "\ne9acab5b5fbb560a72cfaecce8946896ff6aab9d\n" > "$SDK_DIR/licenses/mips-android-sysimage-license"
+          SDKMANAGER=$(find "$SDK_DIR" -name sdkmanager -type f 2>/dev/null | head -n 1 || true)
+          if [ -n "$SDKMANAGER" ]; then
+            yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          fi
+
+      - name: Install Project Dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build Self-Contained Offline LUDO WAR Bundle
+        env:
+          CAPACITOR_BUILD: 'true'
+        run: pnpm build
+
+      - name: Generate Native Android Project
+        run: |
+          rm -rf android
+          npx cap add android
+          npx cap sync android
+
+      - name: Inject Official LUDO WAR Royal King App Icon & Pitch-Black Launch Theme
+        run: |
+          for dir in mipmap-mdpi mipmap-hdpi mipmap-xhdpi mipmap-xxhdpi mipmap-xxxhdpi; do
+            mkdir -p "android/app/src/main/res/$dir"
+            cp public/images/icon-512.png "android/app/src/main/res/$dir/ic_launcher.png"
+            cp public/images/icon-512.png "android/app/src/main/res/$dir/ic_launcher_round.png"
+            cp public/images/icon-512.png "android/app/src/main/res/$dir/ic_launcher_foreground.png"
+          done
+
+          cat << 'EOF' > android/app/src/main/res/values/ic_launcher_background.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="ic_launcher_background">#000000</color>
+          </resources>
+          EOF
+
+          cat << 'EOF' > android/app/src/main/res/values/styles.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
+                  <item name="android:windowNoTitle">true</item>
+                  <item name="android:windowActionBar">false</item>
+                  <item name="android:windowFullscreen">true</item>
+                  <item name="android:windowContentOverlay">@null</item>
+                  <item name="android:windowBackground">@android:color/black</item>
+                  <item name="android:statusBarColor">@android:color/black</item>
+                  <item name="android:navigationBarColor">@android:color/black</item>
+              </style>
+              <style name="AppTheme.NoActionBar" parent="AppTheme" />
+              <style name="AppTheme.NoActionBarLaunch" parent="AppTheme" />
+          </resources>
+          EOF
+
+      - name: Configure PUBG / Clash of Clans True Immersive Fullscreen Activity (Zero Chrome / Zero URL Bar)
+        run: |
+          MAIN_ACT="android/app/src/main/java/com/theumaircode/ludowar/MainActivity.java"
+          mkdir -p "$(dirname "$MAIN_ACT")"
+          cat << 'EOF' > "$MAIN_ACT"
+          package com.theumaircode.ludowar;
+
+          import android.graphics.Color;
+          import android.os.Build;
+          import android.os.Bundle;
+          import android.view.View;
+          import android.view.WindowManager;
+          import androidx.core.view.WindowCompat;
+          import androidx.core.view.WindowInsetsCompat;
+          import androidx.core.view.WindowInsetsControllerCompat;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                  getWindow().setStatusBarColor(Color.BLACK);
+                  getWindow().setNavigationBarColor(Color.BLACK);
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                      WindowManager.LayoutParams lp = getWindow().getAttributes();
+                      lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+                      getWindow().setAttributes(lp);
+                  }
+                  if (this.bridge != null && this.bridge.getWebView() != null) {
+                      this.bridge.getWebView().setBackgroundColor(Color.BLACK);
+                      this.bridge.getWebView().setOverScrollMode(View.OVER_SCROLL_NEVER);
+                  }
+                  enableImmersiveGameMode();
+              }
+
+              @Override
+              public void onResume() {
+                  super.onResume();
+                  enableImmersiveGameMode();
+              }
+
+              @Override
+              public void onWindowFocusChanged(boolean hasFocus) {
+                  super.onWindowFocusChanged(hasFocus);
+                  if (hasFocus) {
+                      enableImmersiveGameMode();
+                  }
+              }
+
+              private void enableImmersiveGameMode() {
+                  WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+                  View decorView = getWindow().getDecorView();
+                  WindowInsetsControllerCompat controller = new WindowInsetsControllerCompat(getWindow(), decorView);
+                  controller.hide(WindowInsetsCompat.Type.systemBars());
+                  controller.setSystemBarsBehavior(
+                      WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                  );
+              }
+          }
+          EOF
+
+      - name: Lock Portrait Game Orientation in AndroidManifest.xml
+        run: |
+          sed -i 's/android:configChanges="/android:screenOrientation="portrait" android:configChanges="/g' android/app/src/main/AndroidManifest.xml
+
+      - name: Prepare Persistent Release Keystore & Sign Native APK + Play Store AAB
+        run: |
+          if [ -f "signing.keystore" ]; then
+            echo "Using existing signing.keystore from repository..."
+            cp signing.keystore android/app/signing.keystore
+          else
+            echo "Generating official signing.keystore..."
+            keytool -genkeypair -v \
+              -keystore android/app/signing.keystore \
+              -alias my-key-alias \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass "t3_hf8pD2N_C" \
+              -keypass "t3_hf8pD2N_C" \
+              -dname "CN=LUDO WAR ADMIN, OU=Gaming, O=THE UMAIR CODE, C=US"
+            cp android/app/signing.keystore signing.keystore
+          fi
+
+          node -e '
+            const fs = require("fs");
+            const p = "android/app/build.gradle";
+            let c = fs.readFileSync(p, "utf8");
+            c = c.replace(
+              "buildTypes {",
+              `signingConfigs {\n        release {\n            storeFile file("signing.keystore")\n            storePassword "t3_hf8pD2N_C"\n            keyAlias "my-key-alias"\n            keyPassword "t3_hf8pD2N_C"\n        }\n    }\n    buildTypes {`
+            ).replace(
+              "minifyEnabled false",
+              "signingConfig signingConfigs.release\n            minifyEnabled false"
+            );
+            fs.writeFileSync(p, c);
+          '
+
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease bundleRelease --no-daemon
+
+      - name: Assemble Complete 6-File Google Play Package (APK, AAB, Keystore, Signing Info, Assetlinks, Readme)
+        run: |
+          mkdir -p release-output
+
+          APK_FILE=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          AAB_FILE=$(find android/app/build/outputs/bundle/release -name "*.aab" | head -n 1)
+          cp "$APK_FILE" "release-output/LUDO WAR®.apk"
+          cp "$AAB_FILE" "release-output/LUDO WAR®.aab"
+          cp android/app/signing.keystore "release-output/signing.keystore"
+
+          SHA256_FP=$(keytool -list -v -keystore android/app/signing.keystore -alias my-key-alias -storepass "t3_hf8pD2N_C" | grep -i "SHA256:" | sed 's/.*SHA256: //g' | tr -d '[:space:]')
+          echo "Extracted SHA-256 Fingerprint: $SHA256_FP"
+
+          cat << EOF > "release-output/signing-key-info.txt"
+          Keep your signing key file safe. You need it to update your future versions of the app.
+
+          Keystore file: signing.keystore
+          Keystore password: t3_hf8pD2N_C
+          Key alias: my-key-alias
+          Key password: t3_hf8pD2N_C
+          SHA-256 certificate fingerprint: $SHA256_FP
+          Full-name: LUDO WAR ADMIN
+          Organizational-unit: Gaming
+          Organization: THE UMAIR CODE
+          City: New York
+          State: NY
+          Country-code: US
+          EOF
+
+          cat << EOF > "release-output/assetlinks.json"
+          [
+            {
+              "relation": ["delegate_permission/common.handle_all_urls"],
+              "target": {
+                "namespace": "android_app",
+                "package_name": "com.theumaircode.ludowar",
+                "sha256_cert_fingerprints": [
+                  "$SHA256_FP",
+                  "9C:01:0D:99:C3:79:92:EF:EA:41:30:70:86:F4:15:6B:61:B1:66:A4:C0:87:8B:FE:98:C9:75:D9:8D:42:72:15",
+                  "80:28:6B:5E:8C:6E:55:F9:C4:65:BB:74:D6:86:70:61:B1:28:11:39:F4:5A:C2:6D:9D:FE:3C:63:77:B2:7C:A3"
+                ]
+              }
+            }
+          ]
+          EOF
+
+          cp "release-output/assetlinks.json" public/.well-known/assetlinks.json
+
+          cat << 'EOF' > "release-output/Readme.html"
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <title>LUDO WAR® — Official Native Android & Google Play Package</title>
+            <style>
+              body { font-family: system-ui, sans-serif; background: #090612; color: #f8e7b9; padding: 32px; line-height: 1.6; }
+              .card { max-width: 720px; margin: 0 auto; background: #140f24; border: 1px solid #d4af37; border-radius: 14px; padding: 28px; }
+              h1 { color: #f5c542; margin-top: 0; }
+              code { background: #231b3d; padding: 2px 6px; border-radius: 4px; color: #ffd970; }
+              li { margin-bottom: 10px; }
+            </style>
+          </head>
+          <body>
+            <div class="card">
+              <h1>LUDO WAR® — True Native Android Package</h1>
+              <p>This package contains your complete, signed, zero-Chrome native Android game files:</p>
+              <ul>
+                <li><strong>LUDO WAR®.apk</strong> — Install directly on any Android phone (Samsung, Redmi/Xiaomi, Vivo, Oppo, OnePlus, Pixel). Opens in true native fullscreen with zero Chrome and zero URL bar.</li>
+                <li><strong>LUDO WAR®.aab</strong> — Upload to Google Play Console for worldwide release.</li>
+                <li><strong>signing.keystore</strong> — Your official Android release signing key. Keep this file safe for future Play Store updates.</li>
+                <li><strong>signing-key-info.txt</strong> — Your keystore password, alias, and SHA-256 fingerprint.</li>
+                <li><strong>assetlinks.json</strong> — Pre-configured Digital Asset Links file with your SHA-256 fingerprint.</li>
+              </ul>
+            </div>
+          </body>
+          </html>
+          EOF
+
+      - name: Save Keystore & Updated assetlinks.json Back to Repository (For Future Updates)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add signing.keystore public/.well-known/assetlinks.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: persist official Android signing.keystore and assetlinks.json [skip ci]"
+            git push || true
+          fi
+
+      - name: Upload Complete 6-File Google Play Package ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: LUDO-WAR-Google-Play-Package
+          path: release-output/*
+          retention-days: 90

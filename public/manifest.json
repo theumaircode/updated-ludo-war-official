@@ -1,0 +1,59 @@
+{
+  "id": "/",
+  "name": "LUDO WAR®",
+  "short_name": "LUDO WAR®",
+  "description": "LUDO WAR® — Cosmic Singularity & Universe Ruling Ring Strategy Game by THE UMAIR CODE®",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#05070b",
+  "prefer_related_applications": false,
+  "categories": ["games", "board", "entertainment"],
+  "icons": [
+    {
+      "src": "/images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/images/pieces-showcase.jpg",
+      "sizes": "2752x1536",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "LUDO WAR® 3D Champions & Universe Ruling Ring"
+    },
+    {
+      "src": "/images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "LUDO WAR® Mobile Command Hub"
+    }
+  ]
+}
