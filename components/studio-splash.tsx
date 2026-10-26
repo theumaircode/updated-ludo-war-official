@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
+import { preload } from 'react-dom'
 import { soundEngine } from '@/lib/sound-engine'
 
 interface StudioSplashProps {
@@ -13,6 +14,7 @@ const TOTAL_MS = 5000
 const EXIT_AT_MS = 3700
 
 export function StudioSplash({ onComplete }: StudioSplashProps) {
+  preload('/images/loading-scene.jpg', { as: 'image' })
   const [phase, setPhase] = useState<Phase>('enter')
   const onCompleteRef = useRef(onComplete)
   onCompleteRef.current = onComplete
