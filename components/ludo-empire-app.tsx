@@ -61,6 +61,7 @@ import {
   generateNoMoveCommentary,
 } from '@/lib/commentary-engine'
 import { soundEngine } from '@/lib/sound-engine'
+import { musicEngine } from '@/lib/music-engine'
 import { StudioSplash } from './studio-splash'
 import { GameLoadingScreen } from './game-loading-screen'
 import { LiveForestEnvironment } from './live-forest-environment'
@@ -194,6 +195,15 @@ export function LudoEmpireApp() {
     window.addEventListener('contextmenu', preventContextMenu)
     return () => window.removeEventListener('contextmenu', preventContextMenu)
   }, [])
+
+  useEffect(() => {
+    if (showSplash) musicEngine.preload('menu')
+    else musicEngine.play(screen === 'match' ? 'match' : 'menu')
+  }, [showSplash, screen])
+
+  useEffect(() => {
+    musicEngine.setEnabled(soundEnabled)
+  }, [soundEnabled])
 
   const toggleSound = () => {
     const next = !soundEnabled
@@ -681,7 +691,7 @@ export function LudoEmpireApp() {
             <button
               type="button"
               onClick={toggleSound}
-              aria-label="Toggle Sound Effects"
+              aria-label="Toggle Sound and Music"
               className="p-1.5 rounded-lg sm:rounded-xl bg-black/75 border border-amber-500/30 text-amber-200 hover:border-amber-400 cursor-pointer"
             >
               {soundEnabled ? (
