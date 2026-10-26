@@ -69,7 +69,7 @@ export function StudioSplash({ onComplete }: StudioSplashProps) {
       role="presentation"
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black select-none overflow-hidden"
       style={{
-        filter: phase === 'exit' ? 'brightness(0)' : 'brightness(1)',
+        filter: phase === 'exit' ? 'brightness(0)' : 'none',
         transition: 'filter 1200ms cubic-bezier(0.4,0,0.2,1) 100ms',
       }}
     >
