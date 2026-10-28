@@ -33,9 +33,6 @@ export function SculptedPieceToken({
   const faction = FACTIONS[piece.faction]
   const isInSanctuary = piece.stepsMoved < 0
 
-  // Centered accurately inside its pedestal socket when in base, or anchored cleanly inside the track tile
-  const anchorY = isInSanctuary ? '-52%' : '-50%'
-
   return (
     <button
       type="button"
@@ -49,13 +46,13 @@ export function SculptedPieceToken({
       style={{
         width: '100%',
         height: '100%',
-        transform: `translate(calc(-50% + ${stackOffset.dx}px), calc(${anchorY} + ${stackOffset.dy}px))`,
+        transform: `translate(calc(-50% + ${stackOffset.dx}px), calc(-50% + ${stackOffset.dy}px))`,
       }}
       className={`group relative flex flex-col items-center justify-center select-none transition-all duration-300 bg-transparent border-0 p-0 ${
         isMovable
-          ? 'cursor-pointer z-30 scale-115 hover:scale-125'
+          ? 'cursor-pointer z-30 scale-105'
           : 'cursor-default z-20'
-      } ${isSelected ? 'scale-125 z-40' : ''} ${
+      } ${isSelected ? 'scale-110 z-40' : ''} ${
         boardScale === 'compact' ? 'scale-90' : ''
       }`}
     >
