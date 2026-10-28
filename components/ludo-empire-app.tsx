@@ -1679,7 +1679,7 @@ export function LudoEmpireApp() {
       {/* SCREEN B: ACTIVE LUDO WAR® MATCH ARENA                              */}
       {/* =================================================================== */}
       {screen === 'match' && (
-        <section className="relative z-10 flex-1 w-full max-w-5xl mx-auto px-2 sm:px-4 py-1 sm:py-2 flex flex-col items-center justify-between gap-1.5">
+        <section className="relative z-10 flex-1 w-full max-w-5xl mx-auto px-2 sm:px-4 py-1 sm:py-2 flex flex-col items-center gap-1.5">
           {/* 1. REAL-TIME DRAMATIC COMMENTARY POP-UP BANNER (ENGLISH / HINGLISH) */}
           {commentaryPopup && (
             <div
@@ -1706,7 +1706,7 @@ export function LudoEmpireApp() {
                   {commentaryLang === 'hinglish' ? 'HINGLISH LIVE' : 'ENG LIVE'}
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-white font-medium leading-snug">
+              <p className="text-[11px] sm:text-xs text-white font-medium leading-snug line-clamp-2 min-h-[2.75em]">
                 {commentaryPopup.text}
               </p>
             </div>
@@ -1714,7 +1714,7 @@ export function LudoEmpireApp() {
 
           {/* 2. NORTH SIDE PLAYER STATIONS & SIDE DICE */}
           <div
-            className={`w-full ${
+            className={`w-full grid min-h-[77px] sm:min-h-[98px] ${
               playerCount === 6 ? 'max-w-[780px]' : 'max-w-[620px]'
             }`}
           >
@@ -1757,7 +1757,17 @@ export function LudoEmpireApp() {
           </div>
 
           {/* 3. CENTER COSMIC ALTAR BOARD WITH ANCIENT GREEK UNIVERSE RING */}
-          <div className="w-full max-w-[min(92vw,45dvh)] sm:max-w-[min(80vw,50dvh)] md:max-w-[min(520px,52dvh)] aspect-square flex items-center justify-center my-0.5">
+          <div className="relative w-full flex-1 min-h-[300px]">
+            <div className="absolute inset-0 flex items-center justify-center [container-type:size]">
+            <div
+              style={{
+                width: 'min(100cqw, 100cqh, 760px)',
+                height:
+                  playerCount === 6
+                    ? 'min(100cqw, 100cqh, 760px)'
+                    : 'min(100cqh, calc(min(100cqw, 100cqh, 760px) * 1.45))',
+              }}
+            >
             <LudoEmpireBoard
               players={players}
               playerCount={playerCount}
@@ -1770,11 +1780,13 @@ export function LudoEmpireApp() {
               recentAbsorbedPiece={recentAbsorbedPiece}
               recentElimination={recentElimination}
             />
+            </div>
+            </div>
           </div>
 
           {/* 4. SOUTH SIDE PLAYER STATIONS & SIDE DICE */}
           <div
-            className={`w-full ${
+            className={`w-full grid min-h-[77px] sm:min-h-[98px] ${
               playerCount === 6 ? 'max-w-[780px]' : 'max-w-[620px]'
             }`}
           >

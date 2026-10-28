@@ -29,6 +29,30 @@ import {
 import { BlackHoleSingularity } from './black-hole-singularity'
 import { SculptedPieceToken } from './sculpted-piece-token'
 
+const CELL_PCT = 100 / 15
+const TRACK_PIECE_PCT = CELL_PCT * 0.88
+const SOCKET_PCT = 12
+const BASE_PIECE_PCT = SOCKET_PCT * 0.86
+const BASE_INSET_PCT = 1.2
+const STACK_SCALE = 0.56
+const STACK_LAYOUTS: Record<number, [number, number][]> = {
+  2: [
+    [-1, 0],
+    [1, 0],
+  ],
+  3: [
+    [-1, -1],
+    [1, -1],
+    [0, 1],
+  ],
+  4: [
+    [-1, -1],
+    [1, -1],
+    [-1, 1],
+    [1, 1],
+  ],
+}
+
 interface LudoEmpireBoardProps {
   players: PlayerState[]
   playerCount: PlayerCountOption
@@ -88,7 +112,7 @@ export function LudoEmpireBoard({
   }
 
   return (
-    <div className="relative w-full aspect-square mx-auto select-none">
+    <div className="relative w-full h-full mx-auto select-none">
       {/* Outer Altar Frame — Clean luxury bezel without cluttered border text */}
       <div
         className="relative w-full h-full rounded-2xl p-1.5 sm:p-2.5 shadow-[0_25px_80px_rgba(0,0,0,0.96)] border-2"
@@ -249,10 +273,10 @@ export function LudoEmpireBoard({
                     <div
                       key={`sanctuary-${cornerIdx}`}
                       style={{
-                        left: `${(leftCol / 15) * 100}%`,
-                        top: `${(topRow / 15) * 100}%`,
-                        width: `${(6 / 15) * 100}%`,
-                        height: `${(6 / 15) * 100}%`,
+                        left: `${(leftCol / 15) * 100 + BASE_INSET_PCT}%`,
+                        top: `${(topRow / 15) * 100 + BASE_INSET_PCT}%`,
+                        width: `${(6 / 15) * 100 - BASE_INSET_PCT * 2}%`,
+                        height: `${(6 / 15) * 100 - BASE_INSET_PCT * 2}%`,
                         background: `radial-gradient(circle at 50% 50%, ${faction.secondaryHex}f0 0%, #06080f 95%)`,
                         borderColor: isCurrentTurn
                           ? '#fef08a'
@@ -289,19 +313,14 @@ export function LudoEmpireBoard({
                         style={{
                           left: `${pedCoord.x}%`,
                           top: `${pedCoord.y}%`,
-                          width: '13.2%',
-                          height: '13.2%',
+                          width: `${SOCKET_PCT}%`,
+                          height: `${SOCKET_PCT}%`,
                           borderColor: `${boardSkin.goldTrim}aa`,
                           background: `radial-gradient(circle, ${faction.primaryHex}38 0%, rgba(4, 6, 12, 0.92) 78%)`,
                           boxShadow: `inset 0 0 10px ${faction.primaryHex}55, 0 2px 8px rgba(0,0,0,0.85)`,
                         }}
-                        className="absolute -translate-x-1/2 -translate-y-1/2 rounded-xl border-2 flex items-center justify-center pointer-events-none"
-                      >
-                        <div
-                          className="w-[72%] h-[72%] rounded-full border border-dashed opacity-45"
-                          style={{ borderColor: faction.glowHex }}
-                        />
-                      </div>
+                        className="absolute -translate-x-1/2 -translate-y-1/2 rounded-xl border-2 pointer-events-none"
+                      />
                     )
                   })
                 })}
@@ -395,26 +414,47 @@ export function LudoEmpireBoard({
             )}
 
             {/* CENTER BLACK HOLE & ANCIENT GREEK UNIVERSE RULING RING */}
-            <div
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10"
-              style={{
-                width: playerCount === 6 ? '23%' : '25%',
-                height: playerCount === 6 ? '23%' : '25%',
-              }}
-            >
-              <BlackHoleSingularity
-                absorbedPieces={absorbedPieces}
-                recentAbsorbedPiece={recentAbsorbedPiece}
-                size="board"
-              />
-            </div>
+            {playerCount === 6 ? (
+              <div
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10"
+                style={{ width: '23%', height: '23%' }}
+              >
+                <BlackHoleSingularity
+                  absorbedPieces={absorbedPieces}
+                  recentAbsorbedPiece={recentAbsorbedPiece}
+                  size="board"
+                />
+              </div>
+            ) : (
+              <div
+                className="absolute z-10 flex items-center justify-center overflow-hidden rounded-md border-2"
+                style={{
+                  left: '40%',
+                  top: '40%',
+                  width: '20%',
+                  height: '20%',
+                  borderColor: boardSkin.goldTrim,
+                  background:
+                    'radial-gradient(circle, #160a30 0%, #030208 100%)',
+                  boxShadow: 'inset 0 0 14px rgba(0,0,0,0.95)',
+                }}
+              >
+                <div className="w-[84%] aspect-square">
+                  <BlackHoleSingularity
+                    absorbedPieces={absorbedPieces}
+                    recentAbsorbedPiece={recentAbsorbedPiece}
+                    size="board"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ================================================================= */}
           {/* UNCLIPPED 3D PIECE & SHOCKWAVE LAYER ABOVE BOARD BORDER (z-30)    */}
           {/* Ensures pieces at the top/edges NEVER get overlapped by borders   */}
           {/* ================================================================= */}
-          <div className="absolute inset-0 pointer-events-none overflow-visible z-30">
+          <div className="absolute inset-[2px] pointer-events-none overflow-visible z-30">
             {/* DRAMATIC DEATH / ELIMINATION SHOCKWAVE ON CAPTURE TILE */}
             {recentElimination && (
               <div
@@ -449,13 +489,12 @@ export function LudoEmpireBoard({
               const idxInGroup = group.findIndex((p) => p.id === piece.id)
               const isInSanctuary = piece.stepsMoved < 0
 
-              let dx = 0
-              let dy = 0
-              if (group.length > 1 && !isInSanctuary) {
-                const angle = (idxInGroup / group.length) * Math.PI * 2
-                dx = Math.cos(angle) * 5
-                dy = Math.sin(angle) * 5
-              }
+              const isStacked = group.length > 1 && !isInSanctuary
+              const [sx, sy] = isStacked
+                ? (STACK_LAYOUTS[group.length] || STACK_LAYOUTS[4])[
+                    idxInGroup % 4
+                  ] ?? [0, 0]
+                : [0, 0]
 
               const isMovable =
                 hasRolled &&
@@ -465,30 +504,24 @@ export function LudoEmpireBoard({
                 piece.playerIndex === currentPlayer.index &&
                 canPieceMove(piece, diceValue, playerCount)
 
-              const pieceWidthPct =
+              const tilePct = playerCount === 6 ? 5.2 : CELL_PCT
+              const baseSize =
                 playerCount === 6
-                  ? '5.8%'
+                  ? tilePct
                   : isInSanctuary
-                    ? '10.6%'
-                    : '6.5%'
-              const pieceHeightPct =
-                playerCount === 6
-                  ? '7.4%'
-                  : isInSanctuary
-                    ? '13.2%'
-                    : '8.2%'
-
-              // Keep top-row pieces centered inside their tile so they never collide with the outer top bezel
-              const clampedY = !isInSanctuary && coord.y < 6 ? 4.3 : coord.y
+                    ? BASE_PIECE_PCT
+                    : TRACK_PIECE_PCT
+              const sizePct = isStacked ? baseSize * STACK_SCALE : baseSize
+              const shiftPct = tilePct * 0.23
 
               return (
                 <div
                   key={piece.id}
                   style={{
-                    left: `${coord.x}%`,
-                    top: `${clampedY}%`,
-                    width: pieceWidthPct,
-                    height: pieceHeightPct,
+                    left: `${coord.x + sx * shiftPct}%`,
+                    top: `${coord.y + sy * shiftPct}%`,
+                    width: `${sizePct}%`,
+                    height: `${sizePct}%`,
                   }}
                   className="absolute transition-all duration-300 ease-out pointer-events-auto"
                 >
@@ -498,7 +531,6 @@ export function LudoEmpireBoard({
                     isSelected={selectedPieceId === piece.id}
                     onSelect={onSelectPiece}
                     skinId={pieceSkinId}
-                    stackOffset={{ dx, dy, count: group.length }}
                     boardScale={playerCount === 6 ? 'compact' : 'normal'}
                   />
                 </div>
