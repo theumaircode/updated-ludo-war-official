@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import {
   BOARD_SKINS,
   BoardSkinId,
@@ -65,6 +65,41 @@ interface LudoEmpireBoardProps {
   recentAbsorbedPiece: PieceInstance | null
   recentElimination?: EliminationEvent | null
   selectedPieceId?: string | null
+  movingPieceId?: string | null
+}
+
+// Lifts the piece in a short arc each time it advances one cell
+function StepHop({
+  step,
+  children,
+}: {
+  step: number
+  children: React.ReactNode
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const prevStep = useRef(step)
+
+  useEffect(() => {
+    const from = prevStep.current
+    prevStep.current = step
+    const el = ref.current
+    if (!el || typeof el.animate !== 'function' || from < 0 || step <= from)
+      return
+    el.animate(
+      [
+        { transform: 'translateY(0) scale(1)' },
+        { transform: 'translateY(-24%) scale(1.08)', offset: 0.45 },
+        { transform: 'translateY(0) scale(1)' },
+      ],
+      { duration: 260, easing: 'cubic-bezier(0.33, 0, 0.2, 1)' }
+    )
+  }, [step])
+
+  return (
+    <div ref={ref} className="w-full h-full">
+      {children}
+    </div>
+  )
 }
 
 export function LudoEmpireBoard({
@@ -79,6 +114,7 @@ export function LudoEmpireBoard({
   recentAbsorbedPiece,
   recentElimination,
   selectedPieceId,
+  movingPieceId = null,
 }: LudoEmpireBoardProps) {
   const boardSkin = BOARD_SKINS[boardSkinId] || BOARD_SKINS.obsidian
   const currentPlayer = players[currentPlayerIndex]
@@ -497,6 +533,7 @@ export function LudoEmpireBoard({
                 : [0, 0]
 
               const isMovable =
+                !movingPieceId &&
                 hasRolled &&
                 diceValue !== null &&
                 currentPlayer &&
@@ -522,17 +559,20 @@ export function LudoEmpireBoard({
                     top: `${coord.y + sy * shiftPct}%`,
                     width: `${sizePct}%`,
                     height: `${sizePct}%`,
+                    zIndex: piece.id === movingPieceId ? 50 : undefined,
                   }}
-                  className="absolute transition-all duration-300 ease-out pointer-events-auto"
+                  className="absolute transition-[left,top,width,height] duration-[260ms] ease-[cubic-bezier(0.45,0,0.25,1)] pointer-events-auto"
                 >
-                  <SculptedPieceToken
-                    piece={piece}
-                    isMovable={Boolean(isMovable)}
-                    isSelected={selectedPieceId === piece.id}
-                    onSelect={onSelectPiece}
-                    skinId={pieceSkinId}
-                    boardScale={playerCount === 6 ? 'compact' : 'normal'}
-                  />
+                  <StepHop step={piece.stepsMoved}>
+                    <SculptedPieceToken
+                      piece={piece}
+                      isMovable={Boolean(isMovable)}
+                      isSelected={selectedPieceId === piece.id}
+                      onSelect={onSelectPiece}
+                      skinId={pieceSkinId}
+                      boardScale={playerCount === 6 ? 'compact' : 'normal'}
+                    />
+                  </StepHop>
                 </div>
               )
             })}

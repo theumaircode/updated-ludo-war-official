@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { FACTIONS, PieceInstance, SCULPTED_PIECES } from '@/lib/game-types'
+import { FACTIONS, PieceInstance } from '@/lib/game-types'
 
 interface BlackHoleSingularityProps {
   absorbedPieces: PieceInstance[]
@@ -386,22 +386,59 @@ export function BlackHoleSingularity({
         </div>
       )}
 
-      {/* 6. Dramatic Singularity Absorption Animation when a Piece Enters the Ring */}
+      {/* 6. Cinematic faction-colored light eruption when a piece enters the Black Hole */}
       {recentAbsorbedPiece && (
-        <div className="absolute inset-0 flex items-center justify-center z-30">
-          <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-amber-300 animate-black-hole-suck">
-            <img
-              src={
-                SCULPTED_PIECES.find(
-                  (s) => s.id === recentAbsorbedPiece.sculptType
-                )?.image || '/images/piece-crown.jpg'
-              }
-              alt="Relic ascending into Black Hole"
-              className="w-full h-full object-cover"
-            />
-          </div>
-        </div>
+        <SingularityLightBurst
+          key={recentAbsorbedPiece.id}
+          primaryHex={FACTIONS[recentAbsorbedPiece.faction].primaryHex}
+          glowHex={FACTIONS[recentAbsorbedPiece.faction].glowHex}
+        />
       )}
+    </div>
+  )
+}
+
+function SingularityLightBurst({
+  primaryHex,
+  glowHex,
+}: {
+  primaryHex: string
+  glowHex: string
+}) {
+  return (
+    <div
+      aria-hidden="true"
+      className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center"
+    >
+      <div
+        className="absolute w-[320%] aspect-square rounded-full mix-blend-screen animate-singularity-flare"
+        style={{
+          background: `radial-gradient(circle, #ffffff 0%, ${glowHex} 14%, ${primaryHex}b3 32%, ${primaryHex}40 52%, transparent 72%)`,
+        }}
+      />
+      <div
+        className="absolute w-[420%] h-[7%] mix-blend-screen animate-singularity-beam"
+        style={{
+          background: `linear-gradient(90deg, transparent, ${primaryHex}, #ffffff, ${primaryHex}, transparent)`,
+        }}
+      />
+      <div
+        className="absolute h-[420%] w-[7%] mix-blend-screen animate-singularity-beam"
+        style={{
+          background: `linear-gradient(180deg, transparent, ${primaryHex}, #ffffff, ${primaryHex}, transparent)`,
+        }}
+      />
+      <div
+        className="absolute w-full aspect-square rounded-full border-2 animate-singularity-ring"
+        style={{
+          borderColor: glowHex,
+          boxShadow: `0 0 24px ${glowHex}, inset 0 0 18px ${glowHex}`,
+        }}
+      />
+      <div
+        className="absolute w-full aspect-square rounded-full border animate-singularity-ring [animation-delay:180ms]"
+        style={{ borderColor: primaryHex, boxShadow: `0 0 18px ${primaryHex}` }}
+      />
     </div>
   )
 }

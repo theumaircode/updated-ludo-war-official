@@ -1,8 +1,8 @@
 'use client'
 
 import React from 'react'
-import { Coins, RotateCcw, Shield, Sparkles } from 'lucide-react'
-import { FACTIONS, PlayerState, SCULPTED_PIECES } from '@/lib/game-types'
+import { Coins, RotateCcw, Swords } from 'lucide-react'
+import { FACTIONS, PlayerState } from '@/lib/game-types'
 import { BlackHoleSingularity } from './black-hole-singularity'
 
 interface VictoryRingModalProps {
@@ -21,90 +21,109 @@ export function VictoryRingModal({
   if (!winner) return null
 
   const faction = FACTIONS[winner.faction]
+  const eliminations = winner.capturesCount
+  const ringMask = 'radial-gradient(circle, #000 25%, transparent 68%)'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-lg">
-      <div className="imperial-panel relative w-full max-w-xl rounded-2xl p-6 sm:p-8 text-center border-2 border-amber-400/70 shadow-[0_0_80px_rgba(245,158,11,0.45)] overflow-hidden">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Victory: ${winner.name}`}
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/95 backdrop-blur-md p-6"
+    >
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `radial-gradient(circle at 50% 44%, ${faction.primaryHex}55 0%, ${faction.primaryHex}1a 35%, transparent 65%)`,
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none animate-victory-flash"
+        style={{
+          background: `radial-gradient(circle at 50% 44%, #ffffff 0%, ${faction.glowHex} 25%, transparent 70%)`,
+        }}
+      />
+
+      <div className="relative z-10 flex w-full max-w-sm flex-col items-center text-center">
+        <p
+          className="animate-victory-rise flex items-center gap-3 font-display text-xs font-bold uppercase tracking-[0.4em]"
+          style={{ color: faction.glowHex, animationDelay: '150ms' }}
+        >
+          <span className="h-px w-8" style={{ background: faction.glowHex }} />
+          {winner.name} · {faction.colorName}
+          <span className="h-px w-8" style={{ background: faction.glowHex }} />
+        </p>
+
+        <h2
+          className="animate-victory-rise mt-3 font-display text-5xl sm:text-6xl font-black uppercase tracking-[0.12em] text-transparent bg-clip-text bg-gradient-to-b from-amber-100 via-amber-300 to-amber-600 drop-shadow-[0_4px_24px_rgba(245,158,11,0.55)]"
+          style={{ animationDelay: '300ms' }}
+        >
+          Victory
+        </h2>
+
         <div
-          className="absolute inset-0 pointer-events-none opacity-35"
-          style={{
-            background: `radial-gradient(circle at 50% 30%, ${faction.primaryHex} 0%, #7e22ce 45%, transparent 75%)`,
-          }}
-        />
+          className="animate-victory-rise relative my-9 flex h-52 w-52 items-center justify-center sm:h-60 sm:w-60"
+          style={{ animationDelay: '450ms' }}
+        >
+          <div
+            aria-hidden="true"
+            className="absolute w-[190%] aspect-square rounded-full animate-spin-slow opacity-70"
+            style={{
+              background: `repeating-conic-gradient(from 0deg, transparent 0deg 10deg, ${faction.glowHex}55 14deg, transparent 18deg 30deg)`,
+              maskImage: ringMask,
+              WebkitMaskImage: ringMask,
+            }}
+          />
+          <div
+            aria-hidden="true"
+            className="absolute -inset-[12%] rounded-full blur-2xl"
+            style={{
+              background: `radial-gradient(circle, ${faction.primaryHex}66 0%, transparent 70%)`,
+            }}
+          />
+          <BlackHoleSingularity absorbedPieces={[]} size="showcase" />
+        </div>
 
-        <div className="relative z-10 flex flex-col items-center">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/20 border border-amber-300/50 text-amber-200 text-xs font-display tracking-[0.22em] uppercase mb-3">
-            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            LUDO WAR® SUPREME VICTORY
-          </div>
+        <div
+          className="animate-victory-rise flex items-center gap-5 font-display text-sm font-bold uppercase tracking-[0.2em]"
+          style={{ animationDelay: '600ms' }}
+        >
+          <span className="flex items-center gap-2 text-amber-200">
+            <Coins className="h-4 w-4 text-amber-400" aria-hidden="true" />
+            {`+${rewardGold} Gold`}
+          </span>
+          <span className="h-4 w-px bg-white/20" aria-hidden="true" />
+          <span className="flex items-center gap-2 text-white/85">
+            <Swords
+              className="h-4 w-4"
+              style={{ color: faction.glowHex }}
+              aria-hidden="true"
+            />
+            {`${eliminations} ${eliminations === 1 ? 'Elimination' : 'Eliminations'}`}
+          </span>
+        </div>
 
-          <h2 className="text-3xl sm:text-4xl font-display font-black tracking-wider text-white drop-shadow-[0_2px_16px_rgba(250,204,21,0.65)]">
-            {winner.name} ({faction.colorName.toUpperCase()})
-          </h2>
-          <p className="text-xs sm:text-sm font-display uppercase tracking-[0.2em] text-amber-300 mt-1">
-            CLAIMS THE ANCIENT GREEK UNIVERSE RULING RING
-          </p>
-
-          {/* Masterpiece Universe Ruling Ring Presentation */}
-          <div className="relative w-44 h-44 my-4 flex items-center justify-center">
-            <BlackHoleSingularity absorbedPieces={[]} size="showcase" />
-          </div>
-
-          {/* All 4 Ascended Relics */}
-          <div className="w-full grid grid-cols-4 gap-2 my-2">
-            {SCULPTED_PIECES.map((sculpt) => (
-              <div
-                key={sculpt.id}
-                className="p-1.5 rounded-xl bg-black/70 border border-amber-400/40 flex flex-col items-center"
-              >
-                <div className="w-11 h-11 rounded-lg overflow-hidden border border-amber-300/40 bg-black">
-                  <img
-                    src={sculpt.image}
-                    alt={sculpt.name}
-                    className="w-full h-full object-cover scale-[1.24] origin-[36%_40%]"
-                  />
-                </div>
-                <span className="text-[9px] font-display font-bold text-amber-200 mt-1">
-                  {sculpt.shortLabel}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Tribute Reward */}
-          <div className="flex items-center justify-center gap-6 my-3.5 py-2.5 px-6 rounded-xl bg-amber-950/40 border border-amber-400/40">
-            <div className="flex items-center gap-2">
-              <Coins className="w-5 h-5 text-amber-400" />
-              <span className="font-mono font-bold text-base sm:text-lg text-amber-200">
-                +{rewardGold} GOLD
-              </span>
-            </div>
-            <div className="h-4 w-px bg-amber-500/30" />
-            <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-purple-400" />
-              <span className="font-mono text-xs sm:text-sm text-purple-200">
-                {winner.capturesCount} ELIMINATIONS
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 w-full mt-2">
-            <button
-              type="button"
-              onClick={onReturnLobby}
-              className="py-3 px-4 rounded-xl bg-slate-900/90 border border-white/15 text-slate-200 font-display font-bold text-xs sm:text-sm tracking-widest uppercase hover:bg-slate-800 cursor-pointer"
-            >
-              WAR HUB
-            </button>
-            <button
-              type="button"
-              onClick={onPlayAgain}
-              className="imperial-button py-3 px-4 rounded-xl text-amber-200 font-display font-bold text-xs sm:text-sm tracking-widest uppercase flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <RotateCcw className="w-4 h-4" />
-              REMATCH
-            </button>
-          </div>
+        <div
+          className="animate-victory-rise mt-10 flex w-full flex-col gap-3"
+          style={{ animationDelay: '750ms' }}
+        >
+          <button
+            type="button"
+            onClick={onPlayAgain}
+            className="imperial-button flex w-full items-center justify-center gap-2 rounded-xl py-3.5 font-display text-sm font-bold uppercase tracking-[0.25em] text-amber-100 cursor-pointer"
+          >
+            <RotateCcw className="h-4 w-4" aria-hidden="true" />
+            Rematch
+          </button>
+          <button
+            type="button"
+            onClick={onReturnLobby}
+            className="w-full rounded-xl py-3 font-display text-xs font-bold uppercase tracking-[0.3em] text-white/60 transition-colors hover:text-white cursor-pointer"
+          >
+            War Hub
+          </button>
         </div>
       </div>
     </div>
