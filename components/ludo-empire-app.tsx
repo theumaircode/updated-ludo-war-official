@@ -72,6 +72,11 @@ import { BlackHoleSingularity } from './black-hole-singularity'
 import { DailySpinWheel } from './daily-spin-wheel'
 import { ArmorySkinsModal } from './armory-skins-modal'
 import { VictoryRingModal } from './victory-ring-modal'
+import {
+  PlayerNamesPanel,
+  buildMatchNames,
+  useCommanderProfile,
+} from './player-names-panel'
 
 const PIECE_STEP_MS = 280
 import { PlayerSideStation } from './player-side-station'
@@ -163,6 +168,7 @@ export function LudoEmpireApp() {
   // 5. Lobby Configuration
   const [playerCount, setPlayerCount] = useState<PlayerCountOption>(4)
   const [matchMode, setMatchMode] = useState<MatchMode>('ai')
+  const { profile, profileRef, updateProfile } = useCommanderProfile()
   const [inspectedSculpt, setInspectedSculpt] =
     useState<PieceSculptType>('crown')
   const [inspectedFaction, setInspectedFaction] =
@@ -245,7 +251,12 @@ export function LudoEmpireApp() {
   const startMatch = useCallback(
     (count: PlayerCountOption = playerCount, mode: MatchMode = matchMode) => {
       soundEngine.playPieceSpawn()
-      const freshPlayers = createMatchPlayers(count, mode)
+      const freshPlayers = createMatchPlayers(
+        count,
+        mode,
+        buildMatchNames(count, profileRef.current)
+      )
+      updateProfile((p) => ({ matches: p.matches + 1 }))
       setPlayers(freshPlayers)
       setCurrentPlayerIndex(0)
       setDiceValue(6)
@@ -388,6 +399,7 @@ export function LudoEmpireApp() {
         scheduleMoveTimer(() => {
           soundEngine.playVictoryFanfare()
           setWinner(mover)
+          if (mover.index === 0) updateProfile((p) => ({ wins: p.wins + 1 }))
           setGoldBalance((g) => g + 500)
         }, 950)
       }
@@ -1049,6 +1061,12 @@ export function LudoEmpireApp() {
                     })}
                   </div>
                 </div>
+
+                <PlayerNamesPanel
+                  profile={profile}
+                  onChange={updateProfile}
+                  playerCount={playerCount}
+                />
 
                 {/* 2. Gameplay Mode Selector */}
                 <div>

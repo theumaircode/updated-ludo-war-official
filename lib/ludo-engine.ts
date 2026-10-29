@@ -307,9 +307,10 @@ export function createMatchPlayers(
     const defaultName =
       idx === 0
         ? customNames?.[0] || 'YOU'
-        : mode === 'pass-and-play'
-          ? customNames?.[idx] || `PLAYER ${idx + 1}`
-          : aiNames[(idx - 1) % aiNames.length]
+        : customNames?.[idx] ||
+          (mode === 'pass-and-play'
+            ? `PLAYER ${idx + 1}`
+            : aiNames[(idx - 1) % aiNames.length])
 
     const pieces: PieceInstance[] = SCULPTED_PIECES.map((sculpt, sIdx) => ({
       id: `${faction}-${sculpt.id}`,
