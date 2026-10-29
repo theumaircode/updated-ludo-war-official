@@ -72,6 +72,8 @@ import { BlackHoleSingularity } from './black-hole-singularity'
 import { DailySpinWheel } from './daily-spin-wheel'
 import { ArmorySkinsModal } from './armory-skins-modal'
 import { VictoryRingModal } from './victory-ring-modal'
+
+const PIECE_STEP_MS = 280
 import { PlayerSideStation } from './player-side-station'
 import { SculptedChessPiece3D } from './sculpted-chess-piece-3d'
 
@@ -186,6 +188,13 @@ export function LudoEmpireApp() {
   const [winner, setWinner] = useState<PlayerState | null>(null)
 
   const aiTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const moveTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
+  const moveLockRef = useRef(false)
+  const [movingPieceId, setMovingPieceId] = useState<string | null>(null)
+
+  const scheduleMoveTimer = useCallback((fn: () => void, ms: number) => {
+    moveTimersRef.current.push(setTimeout(fn, ms))
+  }, [])
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
@@ -245,6 +254,10 @@ export function LudoEmpireApp() {
       setWinner(null)
       setRecentAbsorbedPiece(null)
       setRecentElimination(null)
+      moveTimersRef.current.forEach(clearTimeout)
+      moveTimersRef.current = []
+      moveLockRef.current = false
+      setMovingPieceId(null)
 
       const openingText =
         commentaryLang === 'hinglish'
@@ -272,8 +285,8 @@ export function LudoEmpireApp() {
     setIsRolling(false)
   }, [])
 
-  // Execute a verified, deterministic piece movement
-  const handleMovePiece = useCallback(
+  // Commit the verified final landing of a move (captures, finishing, turn order)
+  const commitMove = useCallback(
     (pieceToMove: PieceInstance, rolledVal: number) => {
       if (winner) return
       const goalStep = getGoalSteps(playerCount)
@@ -346,7 +359,7 @@ export function LudoEmpireApp() {
       } else if (reachedBlackHole) {
         soundEngine.playBlackHoleAbsorb()
         setRecentAbsorbedPiece(pieceToMove)
-        setTimeout(() => setRecentAbsorbedPiece(null), 1200)
+        setTimeout(() => setRecentAbsorbedPiece(null), 1500)
       } else if (isDeploying) {
         soundEngine.playPieceSpawn()
       } else {
@@ -372,7 +385,7 @@ export function LudoEmpireApp() {
       setCommentaryPopup(commentary)
 
       if (mover.finishedCount >= requiredToWin) {
-        setTimeout(() => {
+        scheduleMoveTimer(() => {
           soundEngine.playVictoryFanfare()
           setWinner(mover)
           setGoldBalance((g) => g + 500)
@@ -385,7 +398,8 @@ export function LudoEmpireApp() {
         ? pieceToMove.playerIndex
         : (pieceToMove.playerIndex + 1) % updatedPlayers.length
 
-      setTimeout(() => {
+      scheduleMoveTimer(() => {
+        moveLockRef.current = false
         advanceToNextPlayer(nextIndex)
       }, 450)
     },
@@ -396,7 +410,55 @@ export function LudoEmpireApp() {
       players,
       commentaryLang,
       advanceToNextPlayer,
+      scheduleMoveTimer,
     ]
+  )
+
+  // Walk the piece cell-by-cell (one chess clack per cell), then commit the landing
+  const handleMovePiece = useCallback(
+    (pieceToMove: PieceInstance, rolledVal: number) => {
+      if (winner || moveLockRef.current) return
+      moveLockRef.current = true
+
+      const isDeploying = pieceToMove.stepsMoved === -1
+      const reachesBlackHole =
+        !isDeploying &&
+        pieceToMove.stepsMoved + rolledVal === getGoalSteps(playerCount)
+      const walkFrames = isDeploying
+        ? 0
+        : reachesBlackHole
+          ? rolledVal
+          : rolledVal - 1
+
+      if (walkFrames > 0) setMovingPieceId(pieceToMove.id)
+
+      for (let i = 1; i <= walkFrames; i++) {
+        const frameSteps = pieceToMove.stepsMoved + i
+        scheduleMoveTimer(() => {
+          setPlayers(
+            players.map((p, idx) =>
+              idx !== pieceToMove.playerIndex
+                ? p
+                : {
+                    ...p,
+                    pieces: p.pieces.map((pc) =>
+                      pc.id === pieceToMove.id
+                        ? { ...pc, stepsMoved: frameSteps }
+                        : pc
+                    ),
+                  }
+            )
+          )
+          soundEngine.playPieceStep()
+        }, (i - 1) * PIECE_STEP_MS)
+      }
+
+      scheduleMoveTimer(() => {
+        setMovingPieceId(null)
+        commitMove(pieceToMove, rolledVal)
+      }, walkFrames * PIECE_STEP_MS)
+    },
+    [winner, playerCount, players, scheduleMoveTimer, commitMove]
   )
 
   // Roll the Cosmic Dice from the active player's side station
@@ -1769,6 +1831,7 @@ export function LudoEmpireApp() {
               pieceSkinId={pieceSkin}
               recentAbsorbedPiece={recentAbsorbedPiece}
               recentElimination={recentElimination}
+              movingPieceId={movingPieceId}
             />
           </div>
 

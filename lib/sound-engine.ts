@@ -232,21 +232,60 @@ class SoundEngine {
     })
   }
 
+  private stepNoise: AudioBuffer | null = null
+
+  // Wooden chess-piece "clack": sharp click + hollow wood tock + soft board thump
   public playPieceStep() {
     const ctx = this.getContext()
     if (!ctx) return
     const now = ctx.currentTime
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    osc.type = 'sine'
-    osc.frequency.setValueAtTime(340, now)
-    osc.frequency.exponentialRampToValueAtTime(120, now + 0.09)
-    gain.gain.setValueAtTime(0.22, now)
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1)
-    osc.connect(gain)
-    gain.connect(ctx.destination)
-    osc.start(now)
-    osc.stop(now + 0.11)
+    const pitch = 0.94 + Math.random() * 0.12
+
+    if (!this.stepNoise || this.stepNoise.sampleRate !== ctx.sampleRate) {
+      const len = Math.floor(ctx.sampleRate * 0.08)
+      const buffer = ctx.createBuffer(1, len, ctx.sampleRate)
+      const data = buffer.getChannelData(0)
+      for (let i = 0; i < len; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 4)
+      }
+      this.stepNoise = buffer
+    }
+
+    const master = ctx.createGain()
+    master.gain.value = 0.85
+    master.connect(ctx.destination)
+
+    const layers: [BiquadFilterType, number, number, number, number][] = [
+      ['highpass', 3500, 0.7, 0.25, 0.015],
+      ['bandpass', 1900, 4, 1.0, 0.045],
+      ['bandpass', 950, 7, 1.6, 0.075],
+    ]
+    for (const [type, freq, q, level, decay] of layers) {
+      const src = ctx.createBufferSource()
+      src.buffer = this.stepNoise
+      src.playbackRate.value = pitch
+      const filter = ctx.createBiquadFilter()
+      filter.type = type
+      filter.frequency.value = freq * pitch
+      filter.Q.value = q
+      const g = ctx.createGain()
+      g.gain.setValueAtTime(level, now)
+      g.gain.exponentialRampToValueAtTime(0.001, now + decay)
+      src.connect(filter).connect(g).connect(master)
+      src.start(now)
+      src.stop(now + decay + 0.02)
+    }
+
+    const body = ctx.createOscillator()
+    const bodyGain = ctx.createGain()
+    body.type = 'sine'
+    body.frequency.setValueAtTime(170 * pitch, now)
+    body.frequency.exponentialRampToValueAtTime(85, now + 0.08)
+    bodyGain.gain.setValueAtTime(0.32, now)
+    bodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.09)
+    body.connect(bodyGain).connect(master)
+    body.start(now)
+    body.stop(now + 0.1)
   }
 
   public playPieceSpawn() {

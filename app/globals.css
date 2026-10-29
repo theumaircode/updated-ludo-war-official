@@ -194,6 +194,46 @@
   animation: black-hole-suck 1.15s cubic-bezier(0.55, 0.05, 0.67, 0.19) forwards;
 }
 
+@keyframes singularity-flare {
+  0% { transform: scale(0.15); opacity: 0; }
+  12% { transform: scale(0.55); opacity: 1; }
+  35% { transform: scale(1); opacity: 0.95; }
+  100% { transform: scale(1.15); opacity: 0; }
+}
+@keyframes singularity-beam {
+  0% { transform: scale(0, 0.2); opacity: 0; }
+  15% { transform: scale(1, 1); opacity: 1; }
+  60% { opacity: 0.6; }
+  100% { transform: scale(1.1, 0.4); opacity: 0; }
+}
+@keyframes singularity-ring {
+  0% { transform: scale(0.3); opacity: 1; }
+  100% { transform: scale(3.6); opacity: 0; }
+}
+@keyframes victory-rise {
+  0% { opacity: 0; transform: translateY(18px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes victory-flash {
+  0% { opacity: 0.85; }
+  100% { opacity: 0; }
+}
+.animate-singularity-flare {
+  animation: singularity-flare 1.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-singularity-beam {
+  animation: singularity-beam 1.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-singularity-ring {
+  animation: singularity-ring 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-victory-rise {
+  animation: victory-rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-victory-flash {
+  animation: victory-flash 1.4s ease-out both;
+}
+
 .animate-death-shockwave {
   animation: death-shockwave 0.95s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
