@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { memo } from 'react'
 import { FACTIONS, PieceInstance } from '@/lib/game-types'
 
 interface BlackHoleSingularityProps {
@@ -14,7 +14,7 @@ interface BlackHoleSingularityProps {
  * Sculpted as an awe-inspiring Ancient Greek Olympus / Antikythera Celestial Ring of Power
  * suspended inside a relativistic black hole event horizon.
  */
-export function BlackHoleSingularity({
+export const BlackHoleSingularity = memo(function BlackHoleSingularity({
   absorbedPieces,
   recentAbsorbedPiece,
   size = 'board',
@@ -36,7 +36,7 @@ export function BlackHoleSingularity({
         className="absolute inset-[-14%] rounded-full animate-pulse-aura"
         style={{
           background:
-            'radial-gradient(circle, rgba(245,158,11,0.42) 0%, rgba(168,85,247,0.45) 46%, rgba(234,88,12,0.22) 68%, transparent 78%)',
+            'radial-gradient(circle, rgba(253,224,71,0.4) 0%, rgba(180,83,9,0.38) 46%, rgba(120,53,15,0.2) 66%, transparent 78%)',
         }}
       />
 
@@ -45,10 +45,9 @@ export function BlackHoleSingularity({
         className="absolute inset-[-4%] rounded-full animate-spin-slow"
         style={{
           background:
-            'conic-gradient(from 0deg, #f59e0b, #7e22ce, #fef08a, #a855f7, #ea580c, #4c1d95, #fde047, #f59e0b)',
-          filter: 'blur(2.5px)',
+            'conic-gradient(from 0deg, #f59e0b, #120a02, #fde68a, #78350f, #facc15, #050302, #fbbf24, #f59e0b)',
           boxShadow:
-            '0 0 32px rgba(245, 158, 11, 0.8), inset 0 0 22px rgba(168, 85, 247, 0.9)',
+            '0 0 26px rgba(245, 158, 11, 0.6), inset 0 0 22px rgba(0, 0, 0, 0.9)',
         }}
       />
 
@@ -57,7 +56,7 @@ export function BlackHoleSingularity({
         className="absolute inset-[4%] rounded-full animate-spin-reverse-slow overflow-hidden"
         style={{
           background:
-            'radial-gradient(circle, #000000 32%, #1e0538 54%, #6b21a8 72%, #d97706 90%, #fef08a 100%)',
+            'radial-gradient(circle, #000000 34%, #0b0702 52%, #3b2306 68%, #b45309 86%, #fde68a 100%)',
           boxShadow: 'inset 0 0 26px #000000',
         }}
       >
@@ -65,7 +64,7 @@ export function BlackHoleSingularity({
           <defs>
             <radialGradient id="bhSpiralGlow" cx="50%" cy="50%" r="50%">
               <stop offset="0%" stopColor="#000000" stopOpacity="1" />
-              <stop offset="48%" stopColor="#a855f7" stopOpacity="0.85" />
+              <stop offset="48%" stopColor="#d97706" stopOpacity="0.85" />
               <stop offset="82%" stopColor="#f59e0b" stopOpacity="0.95" />
               <stop offset="100%" stopColor="#fef08a" stopOpacity="0" />
             </radialGradient>
@@ -93,7 +92,7 @@ export function BlackHoleSingularity({
         className="relative w-[72%] h-[72%] rounded-full bg-black flex items-center justify-center"
         style={{
           boxShadow:
-            '0 0 24px 8px #000000, 0 0 38px 12px rgba(168, 85, 247, 0.7), inset 0 0 28px rgba(250, 204, 21, 0.35)',
+            '0 0 24px 8px #000000, 0 0 30px 10px rgba(217, 119, 6, 0.55), inset 0 0 28px rgba(250, 204, 21, 0.35)',
           border: '1.5px solid rgba(254, 240, 138, 0.75)',
         }}
       >
@@ -395,6 +394,18 @@ export function BlackHoleSingularity({
         />
       )}
     </div>
+  )
+}, sameBlackHoleProps)
+
+function sameBlackHoleProps(
+  a: BlackHoleSingularityProps,
+  b: BlackHoleSingularityProps
+) {
+  return (
+    a.size === b.size &&
+    a.recentAbsorbedPiece === b.recentAbsorbedPiece &&
+    a.absorbedPieces.length === b.absorbedPieces.length &&
+    a.absorbedPieces.every((p, i) => p.id === b.absorbedPieces[i].id)
   )
 }
 

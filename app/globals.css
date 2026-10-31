@@ -655,3 +655,128 @@
 .lobby-nav-arrow:active {
   transform: scale(0.92);
 }
+
+/* Cinematic meteor bezel around the board (transform-only, GPU composited) */
+.meteor-bezel {
+  box-shadow: inset 0 0 0 1px rgba(253, 230, 138, 0.22);
+}
+.meteor-streak {
+  position: absolute;
+  border-radius: 9999px;
+  animation-duration: 9s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+.meteor-streak::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, #ffffff 0%, var(--meteor-head) 38%, transparent 70%);
+}
+.meteor-gold {
+  --meteor-tail: rgba(217, 119, 6, 0.45);
+  --meteor-core: #fcd34d;
+  --meteor-head: rgba(253, 224, 71, 0.9);
+}
+.meteor-violet {
+  --meteor-tail: rgba(124, 58, 237, 0.45);
+  --meteor-core: #c4b5fd;
+  --meteor-head: rgba(196, 181, 253, 0.9);
+}
+.meteor-top {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  animation-name: meteor-x;
+  background: linear-gradient(90deg, transparent 40%, var(--meteor-tail) 72%, var(--meteor-core) 94%, #fff);
+}
+.meteor-top::after {
+  right: -6px;
+  top: -5px;
+}
+.meteor-right {
+  top: 0;
+  right: 0;
+  width: 2px;
+  height: 100%;
+  animation-name: meteor-y;
+  background: linear-gradient(180deg, transparent 40%, var(--meteor-tail) 72%, var(--meteor-core) 94%, #fff);
+}
+.meteor-right::after {
+  bottom: -6px;
+  left: -5px;
+}
+.meteor-bottom {
+  bottom: 0;
+  right: 0;
+  width: 100%;
+  height: 2px;
+  animation-name: meteor-x-rev;
+  background: linear-gradient(270deg, transparent 40%, var(--meteor-tail) 72%, var(--meteor-core) 94%, #fff);
+}
+.meteor-bottom::after {
+  left: -6px;
+  top: -5px;
+}
+.meteor-left {
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  animation-name: meteor-y-rev;
+  background: linear-gradient(0deg, transparent 40%, var(--meteor-tail) 72%, var(--meteor-core) 94%, #fff);
+}
+.meteor-left::after {
+  top: -6px;
+  left: -5px;
+}
+@keyframes meteor-x {
+  0% { transform: translate3d(-100%, 0, 0); }
+  25% { transform: translate3d(0, 0, 0); }
+  40%, 100% { transform: translate3d(60%, 0, 0); }
+}
+@keyframes meteor-y {
+  0% { transform: translate3d(0, -100%, 0); }
+  25% { transform: translate3d(0, 0, 0); }
+  40%, 100% { transform: translate3d(0, 60%, 0); }
+}
+@keyframes meteor-x-rev {
+  0% { transform: translate3d(100%, 0, 0); }
+  25% { transform: translate3d(0, 0, 0); }
+  40%, 100% { transform: translate3d(-60%, 0, 0); }
+}
+@keyframes meteor-y-rev {
+  0% { transform: translate3d(0, 100%, 0); }
+  25% { transform: translate3d(0, 0, 0); }
+  40%, 100% { transform: translate3d(0, -60%, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .meteor-streak {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+/* Black hole: always a true circle inside its centre slot, whatever the board's aspect ratio */
+.bh-slot {
+  container-type: size;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bh-circle {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  flex-shrink: 0;
+}
+@supports (width: 1cqmin) {
+  .bh-circle {
+    width: 100cqmin;
+    height: 100cqmin;
+    aspect-ratio: auto;
+  }
+}

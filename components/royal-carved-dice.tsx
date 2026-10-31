@@ -78,9 +78,9 @@ export function RoyalCarvedDice({
       {/* Subtle turn halo beneath the Dice (kept outside the die face so pips stay razor-sharp) */}
       {canRoll && (
         <div
-          className="absolute -inset-1.5 rounded-2xl blur-sm animate-pulse-aura pointer-events-none"
+          className="absolute -inset-1.5 rounded-2xl animate-pulse-aura pointer-events-none"
           style={{
-            background: `radial-gradient(circle, ${activeFactionColor}99 0%, transparent 72%)`,
+            background: `radial-gradient(circle, ${activeFactionColor}80 0%, ${activeFactionColor}2e 45%, transparent 72%)`,
           }}
         />
       )}

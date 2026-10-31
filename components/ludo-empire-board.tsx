@@ -1,6 +1,12 @@
 'use client'
 
-import React, { useEffect, useRef } from 'react'
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+} from 'react'
 import {
   BOARD_SKINS,
   BoardSkinId,
@@ -68,39 +74,153 @@ interface LudoEmpireBoardProps {
   movingPieceId?: string | null
 }
 
-// Lifts the piece in a short arc each time it advances one cell
-function StepHop({
-  step,
-  children,
-}: {
-  step: number
-  children: React.ReactNode
-}) {
-  const ref = useRef<HTMLDivElement>(null)
-  const prevStep = useRef(step)
+const PIECE_GLIDE_MS = 260
+const METEOR_CYCLE_S = 9
+const METEOR_EDGES = ['top', 'right', 'bottom', 'left']
+const BLACK_HOLE_WELL =
+  'radial-gradient(circle closest-side, #000 0%, #000 44%, #080502 56%, #2a1905 68%, rgba(146,98,18,0.8) 80%, rgba(250,204,21,0.3) 90%, rgba(250,204,21,0) 97%)'
 
-  useEffect(() => {
-    const from = prevStep.current
-    prevStep.current = step
-    const el = ref.current
-    if (!el || typeof el.animate !== 'function' || from < 0 || step <= from)
-      return
-    el.animate(
-      [
-        { transform: 'translateY(0) scale(1)' },
-        { transform: 'translateY(-24%) scale(1.08)', offset: 0.45 },
-        { transform: 'translateY(0) scale(1)' },
-      ],
-      { duration: 260, easing: 'cubic-bezier(0.33, 0, 0.2, 1)' }
-    )
-  }, [step])
-
+// Gold + violet comets racing clockwise around the bezel gutter (transform-only, stays on the GPU compositor)
+const MeteorBezel = memo(function MeteorBezel() {
+  const quarter = METEOR_CYCLE_S / 4
   return (
-    <div ref={ref} className="w-full h-full">
-      {children}
+    <div
+      aria-hidden="true"
+      className="meteor-bezel absolute -inset-[2px] rounded-2xl overflow-hidden pointer-events-none"
+    >
+      {METEOR_EDGES.map((edge, i) => (
+        <React.Fragment key={edge}>
+          <span
+            className={`meteor-streak meteor-${edge} meteor-gold`}
+            style={{ animationDelay: `${i * quarter - METEOR_CYCLE_S}s` }}
+          />
+          <span
+            className={`meteor-streak meteor-${edge} meteor-violet`}
+            style={{
+              animationDelay: `${((i * quarter + METEOR_CYCLE_S / 2) % METEOR_CYCLE_S) - METEOR_CYCLE_S}s`,
+            }}
+          />
+        </React.Fragment>
+      ))}
     </div>
   )
+})
+
+interface BoardPieceProps {
+  piece: PieceInstance
+  left: number
+  top: number
+  size: number
+  zIndex?: number
+  isMovable: boolean
+  isSelected: boolean
+  skinId: PieceSkinId
+  compact: boolean
+  onSelect: (piece: PieceInstance) => void
 }
+
+// Glides cell-to-cell with a FLIP transform + hop (no per-frame layout/repaint), and only re-renders when its own state changes
+const BoardPiece = memo(
+  function BoardPiece({
+    piece,
+    left,
+    top,
+    size,
+    zIndex,
+    isMovable,
+    isSelected,
+    skinId,
+    compact,
+    onSelect,
+  }: BoardPieceProps) {
+    const glideRef = useRef<HTMLDivElement>(null)
+    const hopRef = useRef<HTMLDivElement>(null)
+    const lastRef = useRef<{
+      x: number
+      y: number
+      w: number
+      step: number
+    } | null>(null)
+
+    useLayoutEffect(() => {
+      const el = glideRef.current
+      if (!el) return
+      const next = {
+        x: el.offsetLeft,
+        y: el.offsetTop,
+        w: el.offsetWidth,
+        step: piece.stepsMoved,
+      }
+      const prev = lastRef.current
+      lastRef.current = next
+      if (!prev || typeof el.animate !== 'function') return
+
+      const dx = prev.x - next.x
+      const dy = prev.y - next.y
+      const scale = next.w > 0 ? prev.w / next.w : 1
+      if (dx === 0 && dy === 0 && scale === 1) return
+
+      el.animate(
+        [
+          { transform: `translate3d(${dx}px, ${dy}px, 0) scale(${scale})` },
+          { transform: 'translate3d(0, 0, 0) scale(1)' },
+        ],
+        { duration: PIECE_GLIDE_MS, easing: 'cubic-bezier(0.45, 0, 0.25, 1)' }
+      )
+
+      if (prev.step >= 0 && next.step > prev.step) {
+        hopRef.current?.animate(
+          [
+            { transform: 'translateY(0) scale(1)' },
+            { transform: 'translateY(-24%) scale(1.08)', offset: 0.45 },
+            { transform: 'translateY(0) scale(1)' },
+          ],
+          { duration: PIECE_GLIDE_MS, easing: 'cubic-bezier(0.33, 0, 0.2, 1)' }
+        )
+      }
+    }, [left, top, size, piece.stepsMoved])
+
+    return (
+      <div
+        ref={glideRef}
+        style={{
+          left: `${left}%`,
+          top: `${top}%`,
+          width: `${size}%`,
+          height: `${size}%`,
+          zIndex,
+          transformOrigin: '0 0',
+        }}
+        className="absolute pointer-events-auto"
+      >
+        <div ref={hopRef} className="w-full h-full">
+          <SculptedPieceToken
+            piece={piece}
+            isMovable={isMovable}
+            isSelected={isSelected}
+            onSelect={onSelect}
+            skinId={skinId}
+            boardScale={compact ? 'compact' : 'normal'}
+          />
+        </div>
+      </div>
+    )
+  },
+  (a, b) =>
+    a.piece.id === b.piece.id &&
+    a.piece.stepsMoved === b.piece.stepsMoved &&
+    a.piece.faction === b.piece.faction &&
+    a.piece.sculptType === b.piece.sculptType &&
+    a.left === b.left &&
+    a.top === b.top &&
+    a.size === b.size &&
+    a.zIndex === b.zIndex &&
+    a.isMovable === b.isMovable &&
+    a.isSelected === b.isSelected &&
+    a.skinId === b.skinId &&
+    a.compact === b.compact &&
+    a.onSelect === b.onSelect
+)
 
 export function LudoEmpireBoard({
   players,
@@ -118,6 +238,17 @@ export function LudoEmpireBoard({
 }: LudoEmpireBoardProps) {
   const boardSkin = BOARD_SKINS[boardSkinId] || BOARD_SKINS.obsidian
   const currentPlayer = players[currentPlayerIndex]
+  const centerPct = playerCount === 6 ? 23 : 20
+
+  // Stable handler so memoized pieces don't re-render just because the parent passed a new inline callback
+  const onSelectRef = useRef(onSelectPiece)
+  useEffect(() => {
+    onSelectRef.current = onSelectPiece
+  })
+  const handleSelectPiece = useCallback(
+    (piece: PieceInstance) => onSelectRef.current(piece),
+    []
+  )
 
   const absorbedPieces = players.flatMap((p) =>
     p.pieces.filter((piece) => piece.isFinished)
@@ -149,14 +280,16 @@ export function LudoEmpireBoard({
 
   return (
     <div className="relative w-full h-full mx-auto select-none">
-      {/* Outer Altar Frame — Clean luxury bezel without cluttered border text */}
+      {/* Outer Altar Frame — cinematic meteor bezel (same 2px border + padding, so the cell grid keeps its exact size) */}
       <div
-        className="relative w-full h-full rounded-2xl p-1.5 sm:p-2.5 shadow-[0_25px_80px_rgba(0,0,0,0.96)] border-2"
+        className="relative w-full h-full rounded-2xl p-1.5 sm:p-2.5 border-2 border-transparent"
         style={{
-          background: boardSkin.stoneBorder,
-          borderColor: boardSkin.goldTrim,
+          background: `linear-gradient(135deg, rgba(250,204,21,0.2) 0%, rgba(250,204,21,0) 30%, rgba(139,92,246,0) 70%, rgba(139,92,246,0.22) 100%), ${boardSkin.stoneBorder}`,
+          boxShadow:
+            '0 25px 80px rgba(0,0,0,0.96), 0 0 26px rgba(250,204,21,0.12), 0 0 52px rgba(124,58,237,0.14)',
         }}
       >
+        <MeteorBezel />
         {/* Inner Board Coordinate Container (overflow-visible so 3D pieces never get clipped by any border) */}
         <div className="relative w-full h-full">
           {/* Clipped Surface Layer for Board Tiles & Corner Sanctuaries */}
@@ -164,9 +297,8 @@ export function LudoEmpireBoard({
             className="relative w-full h-full rounded-xl overflow-hidden border-2"
             style={{
               background: boardSkin.woodGradient,
-              borderColor: boardSkin.goldTrim,
-              boxShadow:
-                'inset 0 0 50px rgba(0,0,0,0.88), 0 4px 20px rgba(0,0,0,0.92)',
+              borderColor: 'rgba(250, 204, 21, 0.22)',
+              boxShadow: 'inset 0 0 50px rgba(0,0,0,0.88)',
             }}
           >
             {/* Engraved Celestial Filigree Geometry Background */}
@@ -237,7 +369,7 @@ export function LudoEmpireBoard({
                         width: `${100 / 15}%`,
                         height: `${100 / 15}%`,
                         backgroundColor: startFaction
-                          ? `${startFaction.primaryHex}65`
+                          ? `${startFaction.primaryHex}a6`
                           : boardSkin.tileBase,
                         borderColor: boardSkin.tileBorder,
                       }}
@@ -251,7 +383,7 @@ export function LudoEmpireBoard({
                               ? '#ffffff'
                               : boardSkin.runeColor,
                             borderColor: '#fef08a',
-                            boxShadow: `0 0 8px ${boardSkin.runeColor}`,
+                            boxShadow: `0 0 5px ${boardSkin.runeColor}`,
                           }}
                         />
                       ) : (
@@ -276,16 +408,16 @@ export function LudoEmpireBoard({
                         top: `${(r / 15) * 100}%`,
                         width: `${100 / 15}%`,
                         height: `${100 / 15}%`,
-                        background: `radial-gradient(circle, ${faction.primaryHex}90 0%, ${faction.secondaryHex}d8 100%)`,
-                        borderColor: boardSkin.goldTrim,
+                        background: `radial-gradient(circle at 50% 42%, ${faction.primaryHex} 0%, ${faction.primaryHex}c4 46%, ${faction.secondaryHex} 100%)`,
+                        borderColor: 'rgba(255, 255, 255, 0.28)',
                       }}
                       className="absolute border flex items-center justify-center"
                     >
                       <div
-                        className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border border-white/60"
+                        className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border border-white/70"
                         style={{
-                          backgroundColor: faction.primaryHex,
-                          boxShadow: `0 0 8px ${faction.glowHex}`,
+                          backgroundColor: faction.glowHex,
+                          boxShadow: `0 0 5px ${faction.glowHex}`,
                         }}
                       />
                     </div>
@@ -313,15 +445,15 @@ export function LudoEmpireBoard({
                         top: `${(topRow / 15) * 100 + BASE_INSET_PCT}%`,
                         width: `${(6 / 15) * 100 - BASE_INSET_PCT * 2}%`,
                         height: `${(6 / 15) * 100 - BASE_INSET_PCT * 2}%`,
-                        background: `radial-gradient(circle at 50% 50%, ${faction.secondaryHex}f0 0%, #06080f 95%)`,
+                        background: `radial-gradient(circle at 50% 50%, ${faction.primaryHex}55 0%, ${faction.secondaryHex}f0 45%, #06080f 100%)`,
                         borderColor: isCurrentTurn
                           ? '#fef08a'
-                          : boardSkin.goldTrim,
+                          : `${faction.primaryHex}b3`,
                         boxShadow: isCurrentTurn
-                          ? `inset 0 0 28px ${faction.primaryHex}88, 0 0 22px ${faction.glowHex}66`
+                          ? `inset 0 0 28px ${faction.primaryHex}99, inset 0 0 0 1px ${faction.glowHex}88`
                           : 'inset 0 0 22px rgba(0,0,0,0.9)',
                       }}
-                      className="absolute border-2 rounded-lg overflow-hidden transition-all duration-300"
+                      className="absolute border-2 rounded-lg overflow-hidden transition-[border-color] duration-300"
                     >
                       {/* Subtle Corner Faction Crest Watermark in Center of Sanctuary */}
                       <div
@@ -351,7 +483,7 @@ export function LudoEmpireBoard({
                           top: `${pedCoord.y}%`,
                           width: `${SOCKET_PCT}%`,
                           height: `${SOCKET_PCT}%`,
-                          borderColor: `${boardSkin.goldTrim}aa`,
+                          borderColor: `${faction.primaryHex}99`,
                           background: `radial-gradient(circle, ${faction.primaryHex}38 0%, rgba(4, 6, 12, 0.92) 78%)`,
                           boxShadow: `inset 0 0 10px ${faction.primaryHex}55, 0 2px 8px rgba(0,0,0,0.85)`,
                         }}
@@ -449,33 +581,21 @@ export function LudoEmpireBoard({
               </>
             )}
 
-            {/* CENTER BLACK HOLE & ANCIENT GREEK UNIVERSE RULING RING */}
-            {playerCount === 6 ? (
+            {/* CENTER BLACK HOLE — a true circle confined to the centre space; glow, vortex & light burst are all clipped inside it so no cell is ever covered */}
+            <div
+              className="bh-slot absolute z-10 pointer-events-none"
+              style={{
+                left: `${50 - centerPct / 2}%`,
+                top: `${50 - centerPct / 2}%`,
+                width: `${centerPct}%`,
+                height: `${centerPct}%`,
+              }}
+            >
               <div
-                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10"
-                style={{ width: '23%', height: '23%' }}
+                className="bh-circle relative rounded-full overflow-hidden"
+                style={{ background: BLACK_HOLE_WELL }}
               >
-                <BlackHoleSingularity
-                  absorbedPieces={absorbedPieces}
-                  recentAbsorbedPiece={recentAbsorbedPiece}
-                  size="board"
-                />
-              </div>
-            ) : (
-              <div
-                className="absolute z-10 flex items-center justify-center overflow-hidden rounded-md border-2"
-                style={{
-                  left: '40%',
-                  top: '40%',
-                  width: '20%',
-                  height: '20%',
-                  borderColor: boardSkin.goldTrim,
-                  background:
-                    'radial-gradient(circle, #160a30 0%, #030208 100%)',
-                  boxShadow: 'inset 0 0 14px rgba(0,0,0,0.95)',
-                }}
-              >
-                <div className="w-[84%] aspect-square">
+                <div className="absolute inset-[9%]">
                   <BlackHoleSingularity
                     absorbedPieces={absorbedPieces}
                     recentAbsorbedPiece={recentAbsorbedPiece}
@@ -483,7 +603,7 @@ export function LudoEmpireBoard({
                   />
                 </div>
               </div>
-            )}
+            </div>
           </div>
 
           {/* ================================================================= */}
@@ -552,28 +672,19 @@ export function LudoEmpireBoard({
               const shiftPct = tilePct * 0.23
 
               return (
-                <div
+                <BoardPiece
                   key={piece.id}
-                  style={{
-                    left: `${coord.x + sx * shiftPct}%`,
-                    top: `${coord.y + sy * shiftPct}%`,
-                    width: `${sizePct}%`,
-                    height: `${sizePct}%`,
-                    zIndex: piece.id === movingPieceId ? 50 : undefined,
-                  }}
-                  className="absolute transition-[left,top,width,height] duration-[260ms] ease-[cubic-bezier(0.45,0,0.25,1)] pointer-events-auto"
-                >
-                  <StepHop step={piece.stepsMoved}>
-                    <SculptedPieceToken
-                      piece={piece}
-                      isMovable={Boolean(isMovable)}
-                      isSelected={selectedPieceId === piece.id}
-                      onSelect={onSelectPiece}
-                      skinId={pieceSkinId}
-                      boardScale={playerCount === 6 ? 'compact' : 'normal'}
-                    />
-                  </StepHop>
-                </div>
+                  piece={piece}
+                  left={coord.x + sx * shiftPct}
+                  top={coord.y + sy * shiftPct}
+                  size={sizePct}
+                  zIndex={piece.id === movingPieceId ? 50 : undefined}
+                  isMovable={Boolean(isMovable)}
+                  isSelected={selectedPieceId === piece.id}
+                  skinId={pieceSkinId}
+                  compact={playerCount === 6}
+                  onSelect={handleSelectPiece}
+                />
               )
             })}
           </div>

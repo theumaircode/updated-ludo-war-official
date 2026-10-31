@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { memo } from 'react'
 import {
   FactionId,
   FACTIONS,
@@ -86,7 +86,7 @@ const FACTION_BODY_PALETTES: Record<FactionId, FactionBodyPalette> = {
  * Every piece's entire body is 100% its player's faction color (Red, Green, Blue, Yellow, Purple, Cyan)
  * with razor-sharp white (#ffffff) and black (#05070d) structural bordering, lining, eyes, and base.
  */
-export function SculptedChessPiece3D({
+export const SculptedChessPiece3D = memo(function SculptedChessPiece3D({
   sculptType,
   faction,
   skinId = 'heirloom-gold',
@@ -1143,4 +1143,4 @@ export function SculptedChessPiece3D({
       )}
     </svg>
   )
-}
+})
